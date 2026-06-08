@@ -1,0 +1,226 @@
+// Centralized data-testid registry for QA stability.
+// Use these constants everywhere instead of inline strings.
+
+export const NAV = {
+  root: 'nav-root',
+  announcementBar: 'nav-announcement-bar',
+  logoLink: 'nav-logo-link',
+  searchInput: 'nav-search-input',
+  searchSubmit: 'nav-search-submit',
+  searchDropdown: 'nav-search-dropdown',
+  searchLoading: 'nav-search-loading',
+  searchResultItem: 'nav-search-result-item',
+  searchSeeAll: 'nav-search-see-all',
+  searchTrendingChip: 'nav-search-trending-chip',
+  departmentsToggle: 'nav-departments-toggle',
+  departmentLink: 'nav-department-link',
+  accountButton: 'nav-account-button',
+  accountLink: 'nav-account-link',
+  adminLink: 'nav-admin-link',
+  cartButton: 'nav-cart-button',
+  loginLink: 'nav-login-link',
+  registerLink: 'nav-register-link',
+  logoutButton: 'nav-logout-button',
+  mobileToggle: 'nav-mobile-toggle',
+};
+
+export const FOOTER = {
+  root: 'footer-root',
+  newsletterInput: 'footer-newsletter-input',
+  newsletterSubmit: 'footer-newsletter-submit',
+};
+
+export const HOME_PAGE = {
+  root: 'home-page',
+  heroCta: 'home-hero-cta',
+  heroSecondaryCta: 'home-hero-secondary-cta',
+  shopAllCta: 'home-shop-all-cta',
+  categoriesGrid: 'home-categories-grid',
+  categoryTile: 'home-category-tile',
+  featuredGrid: 'home-featured-grid',
+};
+
+export const SHOP = {
+  page: 'shop-page',
+  grid: 'shop-grid',
+  empty: 'shop-empty',
+  emptyClearSearch: 'shop-empty-clear-search',
+  emptyBrowseAll: 'shop-empty-browse-all',
+  results: 'shop-results-count',
+  searchInput: 'shop-search-input',
+  searchSubmit: 'shop-search-submit',
+  searchClear: 'shop-search-clear',
+  sortSelect: 'shop-sort-select',
+  filterToggle: 'shop-filter-toggle',
+  appliedPills: 'shop-applied-pills',
+  clearAll: 'shop-clear-all',
+  prevPage: 'shop-prev-page',
+  nextPage: 'shop-next-page',
+};
+
+export const FILTER = {
+  group: 'filter-group',
+  categoryCheckbox: 'filter-category-checkbox',
+  brandCheckbox: 'filter-brand-checkbox',
+  fulfillmentCheckbox: 'filter-fulfillment-checkbox',
+  priceMin: 'filter-price-min',
+  priceMax: 'filter-price-max',
+  onSale: 'filter-on-sale',
+};
+
+export const PRODUCT_CARD = {
+  root: 'product-card',
+  link: 'product-card-link',
+  title: 'product-card-title',
+  price: 'product-card-price',
+  saleBadge: 'product-card-sale-badge',
+  fulfillmentBadge: 'product-card-fulfillment-badge',
+  quickView: 'product-card-quick-view',
+};
+
+export const QUICK_VIEW = {
+  modal: 'quick-view-modal',
+  loading: 'quick-view-loading',
+  title: 'quick-view-title',
+  price: 'quick-view-price',
+  description: 'quick-view-description',
+  image: 'quick-view-image',
+  thumb: 'quick-view-thumb',
+  variantOption: 'quick-view-variant-option',
+  qtyMinus: 'quick-view-qty-minus',
+  qtyPlus: 'quick-view-qty-plus',
+  qtyInput: 'quick-view-qty-input',
+  addToCart: 'quick-view-add-to-cart',
+  fullDetails: 'quick-view-full-details',
+  closeButton: 'quick-view-close',
+};
+
+export const PDP = {
+  page: 'pdp-page',
+  breadcrumb: 'pdp-breadcrumb',
+  imageMain: 'pdp-image-main',
+  thumb: 'pdp-thumb',
+  title: 'pdp-title',
+  price: 'pdp-price',
+  stockStatus: 'pdp-stock-status',
+  description: 'pdp-description',
+  variantSelect: 'pdp-variant-select',
+  qtyInput: 'pdp-qty-input',
+  addToCart: 'pdp-add-to-cart',
+};
+
+export const LOGIN = {
+  emailInput: 'login-email-input',
+  passwordInput: 'login-password-input',
+  submitButton: 'login-submit-button',
+  forgotPasswordLink: 'login-forgot-password-link',
+  registerLink: 'login-register-link',
+};
+
+export const REGISTER = {
+  nameInput: 'register-name-input',
+  emailInput: 'register-email-input',
+  passwordInput: 'register-password-input',
+  passwordConfirmInput: 'register-password-confirm-input',
+  submitButton: 'register-submit-button',
+  loginLink: 'register-login-link',
+};
+
+export const ADMIN = {
+  dashboard: 'admin-dashboard',
+  statsCard: 'admin-stats-card',
+  productsTable: 'admin-products-table',
+  productRow: 'admin-product-row',
+  searchInput: 'admin-search-input',
+  newProductButton: 'admin-new-product-button',
+  editButton: 'admin-edit-button',
+  deleteButton: 'admin-delete-button',
+  modal: 'admin-modal',
+  modalTitle: 'admin-modal-title',
+  modalSku: 'admin-modal-sku',
+  modalPrice: 'admin-modal-price',
+  modalSalePrice: 'admin-modal-sale-price',
+  modalStock: 'admin-modal-stock',
+  modalCategory: 'admin-modal-category',
+  modalBrand: 'admin-modal-brand',
+  modalDescription: 'admin-modal-description',
+  modalImages: 'admin-modal-images',
+  modalFulfillment: 'admin-modal-fulfillment',
+  modalReorderPoint: 'admin-modal-reorder-point',
+  modalDownloadUrl: 'admin-modal-download-url',
+  modalFeatured: 'admin-modal-featured',
+  modalSave: 'admin-modal-save',
+  modalCancel: 'admin-modal-cancel',
+  confirmDelete: 'admin-confirm-delete',
+  confirmCancel: 'admin-confirm-cancel',
+  lowStockCard: 'admin-low-stock-card',
+  lowStockRow: 'admin-low-stock-row',
+  lowStockEmpty: 'admin-low-stock-empty',
+  orderLineItem: 'admin-order-line-item',
+  orderFulfillmentBadge: 'admin-order-fulfillment-badge',
+};
+
+export const CART = {
+  drawer: 'cart-drawer',
+  drawerClose: 'cart-drawer-close-button',
+  drawerOverlay: 'cart-drawer-overlay',
+  navCartButton: 'navbar-cart-button',
+  navCartBadge: 'navbar-cart-badge',
+  lineItem: 'cart-line-item',
+  qtyPlus: 'cart-item-qty-plus',
+  qtyMinus: 'cart-item-qty-minus',
+  removeButton: 'cart-item-remove-button',
+  promoInput: 'cart-promo-input',
+  promoSubmit: 'cart-promo-submit-button',
+  subtotal: 'cart-subtotal',
+  total: 'cart-total',
+  viewCartLink: 'cart-view-cart-link',
+  checkoutLink: 'cart-checkout-link',
+  upsellRow: 'cart-upsell-row',
+  empty: 'cart-empty-state',
+  page: 'cart-page',
+  pageContinueShopping: 'cart-page-continue-shopping',
+  addToCartCard: 'product-card-add-to-cart-button',
+  addToCartPDP: 'product-detail-add-to-cart-button',
+};
+
+export const CHECKOUT = {
+  page: 'checkout-page',
+  stepIndicator: 'checkout-step-indicator',
+  guestEmail: 'checkout-guest-email-input',
+  firstName: 'checkout-first-name-input',
+  lastName: 'checkout-last-name-input',
+  address1: 'checkout-address1-input',
+  address2: 'checkout-address2-input',
+  city: 'checkout-city-input',
+  state: 'checkout-state-input',
+  zip: 'checkout-zip-input',
+  country: 'checkout-country-input',
+  shippingMethodStandard: 'checkout-shipping-standard',
+  shippingMethodExpress: 'checkout-shipping-express',
+  continueToPayment: 'checkout-continue-to-payment-button',
+  cardNumber: 'checkout-card-number-input',
+  cardExpiry: 'checkout-card-expiry-input',
+  cardCvv: 'checkout-card-cvv-input',
+  cardHolder: 'checkout-card-holder-input',
+  paymentMethodCard: 'checkout-payment-card',
+  paymentMethodPaypal: 'checkout-payment-paypal',
+  paymentMethodApple: 'checkout-payment-apple',
+  paymentMethodGoogle: 'checkout-payment-google',
+  placeOrder: 'checkout-place-order-button',
+  backToShipping: 'checkout-back-to-shipping-button',
+  confirmationPage: 'order-confirmation-page',
+  orderNumber: 'order-confirmation-number',
+  continueShopping: 'order-confirmation-continue-shopping',
+  viewOrders: 'order-confirmation-view-orders',
+};
+
+export const WISHLIST = {
+  page: 'wishlist-page',
+  empty: 'wishlist-empty-state',
+  removeAll: 'wishlist-remove-all-button',
+  cardToggle: 'product-card-wishlist-toggle',
+  pdpToggle: 'product-detail-wishlist-toggle',
+  navIcon: 'navbar-wishlist-button',
+  navBadge: 'navbar-wishlist-badge',
+};

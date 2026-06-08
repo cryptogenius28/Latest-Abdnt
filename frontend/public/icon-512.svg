@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#E8621A"/>
+  <!-- Safe maskable padding (~10% on each side) — main mark stays inside 410x410 -->
+  <g transform="translate(51 51)" fill="#ffffff">
+    <!-- 8-point sparkle / star mark mirroring the navbar logo -->
+    <path d="M205 0
+             L237 168
+             L410 205
+             L237 242
+             L205 410
+             L173 242
+             L0 205
+             L173 168 Z"/>
+    <!-- Small accent diamond top right -->
+    <path d="M340 50
+             L356 78
+             L384 94
+             L356 110
+             L340 138
+             L324 110
+             L296 94
+             L324 78 Z" opacity="0.85"/>
+  </g>
+</svg>

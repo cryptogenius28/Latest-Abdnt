@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222 22% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 22% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 22% 11%;
+        /* Brand orange #E8621A as primary */
+        --primary: 18 81% 51%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 220 14% 96%;
+        --secondary-foreground: 222 22% 11%;
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%;
+        --accent: 18 100% 96%;
+        --accent-foreground: 18 81% 35%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 18 81% 51%;
+        --radius: 0.5rem;
+    }
+}
+
+* {
+    border-color: hsl(var(--border));
+}
+
+html, body, #root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+/* Star-burst CSS logo mark */
+.am-logo-mark {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.am-logo-mark::before,
+.am-logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #E8621A;
+    clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+}
+.am-logo-mark::after {
+    transform: rotate(22deg);
+    background: #1F2937;
+    opacity: 0.85;
+    clip-path: polygon(50% 10%, 56% 44%, 90% 50%, 56% 56%, 50% 90%, 44% 56%, 10% 50%, 44% 44%);
+}
+
+/* Product card image hover swap */
+.product-image-wrap { position: relative; overflow: hidden; }
+.product-image-wrap img.primary,
+.product-image-wrap img.secondary {
+    transition: opacity .35s ease, transform .6s ease;
+}
+.product-image-wrap img.secondary {
+    position: absolute; inset: 0; opacity: 0;
+}
+.product-image-wrap:hover img.primary { opacity: 0; transform: scale(1.04); }
+.product-image-wrap:hover img.secondary { opacity: 1; transform: scale(1.04); }
+
+/* Skeleton shimmer */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: hsl(var(--muted));
+}
+.skeleton::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* Selection */
+::selection { background: #E8621A; color: white; }

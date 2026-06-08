@@ -1,0 +1,28 @@
+// Test IDs for admin panel.
+export const ADMIN = {
+  dashboard: 'admin-dashboard',
+  productsTable: 'admin-products-table',
+  productRow: 'admin-product-row',
+  createButton: 'admin-create-product-button',
+  searchInput: 'admin-products-search-input',
+  editButton: 'admin-product-edit-button',
+  deleteButton: 'admin-product-delete-button',
+  // Form fields
+  formTitle: 'admin-product-form-title-input',
+  formDescription: 'admin-product-form-description-input',
+  formPrice: 'admin-product-form-price-input',
+  formSalePrice: 'admin-product-form-sale-price-input',
+  formSku: 'admin-product-form-sku-input',
+  formBrand: 'admin-product-form-brand-input',
+  formCategory: 'admin-product-form-category-select',
+  formStock: 'admin-product-form-stock-input',
+  formFulfillment: 'admin-product-form-fulfillment-select',
+  formImages: 'admin-product-form-images-input',
+  formFeatured: 'admin-product-form-featured-checkbox',
+  formSubmit: 'admin-product-form-submit-button',
+  formCancel: 'admin-product-form-cancel-button',
+  statsProducts: 'admin-stats-products',
+  statsUsers: 'admin-stats-users',
+  statsOnSale: 'admin-stats-on-sale',
+  statsOutOfStock: 'admin-stats-out-of-stock',
+};
