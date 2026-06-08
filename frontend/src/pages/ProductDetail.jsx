@@ -14,6 +14,7 @@ import { LiveViewingBadge } from '@/components/product/LiveViewingBadge';
 import { LowStockBadge } from '@/components/product/LowStockBadge';
 import { ImageLightbox } from '@/components/product/ImageLightbox';
 import { StickyAddToCart } from '@/components/product/StickyAddToCart';
+import { RestockAlertForm } from '@/components/product/RestockAlertForm';
 import { getSessionId } from '@/lib/sessionId';
 import { toast } from 'sonner';
 
@@ -253,6 +254,10 @@ const ProductDetail = () => {
 
           {isWarehouse && (
             <LowStockBadge stock={product.stock_quantity || 0} viewCount={product.view_count || 0} />
+          )}
+
+          {isWarehouse && !inStock && (
+            <RestockAlertForm productId={product.id} />
           )}
 
           <p data-testid={PDP.description} className="mt-5 text-ink-600 text-sm md:text-base leading-relaxed">

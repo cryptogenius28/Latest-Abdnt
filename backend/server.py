@@ -205,6 +205,73 @@ async def trending_searches(limit: int = Query(8, ge=1, le=20)):
     return {"terms": terms}
 
 
+# ----------------------------- Restock Alerts -----------------------------
+class RestockAlertRequest(__import__("pydantic").BaseModel):
+    product_id: str
+    email: str
+
+
+@api.post("/restock-alerts", status_code=201)
+async def subscribe_restock_alert(payload: RestockAlertRequest):
+    """Public — subscribe to be notified when a warehouse product is back in stock."""
+    email = payload.email.strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    product = await db.products.find_one(
+        {"id": payload.product_id},
+        {"_id": 0, "id": 1, "title": 1, "fulfillment_type": 1, "stock_quantity": 1},
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if product.get("fulfillment_type") != "warehouse":
+        raise HTTPException(status_code=400, detail="Restock alerts are only available for warehouse products.")
+    from datetime import datetime as _dt, timezone as _tz
+    doc = {
+        "product_id": payload.product_id,
+        "product_title": product.get("title") or "",
+        "email": email,
+        "created_at": _dt.now(_tz.utc).isoformat(),
+        "notified_at": None,
+    }
+    try:
+        await db.restock_alerts.update_one(
+            {"product_id": payload.product_id, "email": email},
+            {"$setOnInsert": doc},
+            upsert=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Failed to record restock alert: %s", exc)
+        raise HTTPException(status_code=500, detail="Could not save alert") from exc
+    return {"ok": True, "message": "We'll email you the moment it's back."}
+
+
+@api.get("/admin/restock-alerts")
+async def admin_restock_alerts(_: dict = Depends(require_admin)):
+    """Admin — pending restock alerts grouped by product."""
+    pipeline = [
+        {"$match": {"notified_at": None}},
+        {"$group": {
+            "_id": "$product_id",
+            "product_title": {"$first": "$product_title"},
+            "count": {"$sum": 1},
+            "latest": {"$max": "$created_at"},
+        }},
+        {"$sort": {"count": -1, "latest": -1}},
+        {"$limit": 50},
+    ]
+    grouped = await db.restock_alerts.aggregate(pipeline).to_list(50)
+    items = []
+    for g in grouped:
+        items.append({
+            "product_id": g["_id"],
+            "product_title": g.get("product_title") or "(unknown)",
+            "subscribers": g["count"],
+            "latest_subscription": g.get("latest"),
+        })
+    total_pending = await db.restock_alerts.count_documents({"notified_at": None})
+    return {"items": items, "total_pending": total_pending}
+
+
 # ----------------------------- Products -----------------------------
 @api.get("/products", response_model=ProductListResponse)
 async def list_products(
@@ -463,6 +530,8 @@ async def on_startup():
     await db.addresses.create_index("user_id")
     await db.addresses.create_index([("user_id", 1), ("is_default", -1)])
     await db.payment_methods.create_index("user_id")
+    await db.restock_alerts.create_index([("product_id", 1), ("email", 1)], unique=True)
+    await db.restock_alerts.create_index("notified_at")
     # Seed admin if missing
     admin_email = os.environ.get("ADMIN_EMAIL", "").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "")

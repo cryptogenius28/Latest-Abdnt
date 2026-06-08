@@ -3,7 +3,7 @@ import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-ro
 import {
   Package, Users, AlertTriangle, Tag, Plus, Pencil, Trash2, Search,
   X, ChevronLeft, ChevronRight, LayoutDashboard, ShoppingBag, Star, ArrowLeft,
-  Mail, MessageSquare, Receipt, DollarSign, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Image as ImageIcon, FileArchive, TrendingUp, TrendingDown, BarChart3, Eye, ShoppingCart, Target, Sparkles, Loader2,
+  Mail, MessageSquare, Receipt, DollarSign, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Image as ImageIcon, FileArchive, TrendingUp, TrendingDown, BarChart3, Eye, ShoppingCart, Target, Sparkles, Loader2, Bell,
 } from 'lucide-react';
 import { api, formatPrice } from '@/lib/api';
 import { ADMIN } from '@/constants/testIds';
@@ -831,7 +831,10 @@ const AdminDashboard = () => {
 
 const AdminOverviewBody = ({ stats }) => (
   <div className="space-y-6">
-    <LowStockCard />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <LowStockCard />
+      <RestockAlertsCard />
+    </div>
     <div className="bg-white border border-ink-200 rounded-xl p-8">
       <h2 className="font-heading text-2xl font-bold text-ink-900">Welcome back, admin.</h2>
       <p className="mt-2 text-ink-500 max-w-2xl">
@@ -964,6 +967,78 @@ const LowStockCard = () => {
             </tbody>
           </table>
         </div>
+      )}
+    </div>
+  );
+};
+
+// ---- Restock alerts card (admin Overview) ----
+const RestockAlertsCard = () => {
+  const [data, setData] = useState({ items: [], total_pending: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/admin/restock-alerts')
+      .then((r) => { if (!cancelled) setData(r.data || { items: [], total_pending: 0 }); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const items = data.items || [];
+
+  return (
+    <div
+      data-testid="admin-restock-alerts-card"
+      className="bg-white border border-ink-200 rounded-xl overflow-hidden"
+    >
+      <div className="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Bell className="w-5 h-5 text-brand" strokeWidth={1.75} />
+          <h2 className="font-heading text-lg font-bold text-ink-900">Restock Waitlist</h2>
+          {data.total_pending > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-bold bg-brand/10 text-brand rounded-full">
+              {data.total_pending}
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-ink-400">Top 5</span>
+      </div>
+
+      {loading ? (
+        <div className="p-6 space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skeleton h-8 w-full rounded" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div data-testid="admin-restock-alerts-empty" className="px-6 py-10 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ink-50 border border-ink-200 text-ink-600">
+            <Bell className="w-4 h-4" strokeWidth={2} />
+            <span className="text-sm font-semibold">No one waiting</span>
+          </div>
+          <p className="mt-2 text-xs text-ink-500">
+            Customers can subscribe to restock alerts from any out-of-stock product page.
+          </p>
+        </div>
+      ) : (
+        <ul className="divide-y divide-ink-100">
+          {items.slice(0, 5).map((it) => (
+            <li
+              key={it.product_id}
+              data-testid="admin-restock-alerts-row"
+              className="flex items-center justify-between px-6 py-3 hover:bg-ink-50/60"
+            >
+              <span className="font-semibold text-sm text-ink-900 truncate flex-1 mr-3">
+                {it.product_title}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand whitespace-nowrap">
+                <Users className="w-3.5 h-3.5" strokeWidth={2} /> {it.subscribers}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
