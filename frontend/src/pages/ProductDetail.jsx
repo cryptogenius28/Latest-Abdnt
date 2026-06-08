@@ -104,7 +104,10 @@ const ProductDetail = () => {
   const onSale = !!product.sale_price && product.sale_price < product.price;
   const finalPrice = onSale ? product.sale_price : product.price;
   const discountPct = onSale ? Math.round(((product.price - product.sale_price) / product.price) * 100) : 0;
-  const inStock = (product.stock_quantity || 0) > 0;
+  // Phase 5/8 — only warehouse products gate purchase on stock_quantity.
+  // Dropship & digital are always purchasable (supplier-managed / instant delivery).
+  const isWarehouse = (product.fulfillment_type || 'warehouse') === 'warehouse';
+  const inStock = isWarehouse ? (product.stock_quantity || 0) > 0 : true;
   const images = product.images?.length ? product.images : ['https://placehold.co/800x800?text=No+Image'];
 
   const fulfillmentMeta = {
@@ -248,7 +251,9 @@ const ProductDetail = () => {
             )}
           </div>
 
-          <LowStockBadge stock={product.stock_quantity || 0} viewCount={product.view_count || 0} />
+          {isWarehouse && (
+            <LowStockBadge stock={product.stock_quantity || 0} viewCount={product.view_count || 0} />
+          )}
 
           <p data-testid={PDP.description} className="mt-5 text-ink-600 text-sm md:text-base leading-relaxed">
             {product.description}
@@ -289,11 +294,11 @@ const ProductDetail = () => {
                 type="number"
                 value={qty}
                 min={1}
-                max={product.stock_quantity || 99}
+                max={isWarehouse ? (product.stock_quantity || 99) : 99}
                 onChange={(e) => setQty(Math.max(1, parseInt(e.target.value || '1', 10)))}
                 className="w-14 h-full text-center text-sm font-semibold focus:outline-none"
               />
-              <button onClick={() => setQty((q) => Math.min(product.stock_quantity || 99, q + 1))} className="w-11 h-full flex items-center justify-center text-ink-700 hover:bg-ink-50">
+              <button onClick={() => setQty((q) => Math.min(isWarehouse ? (product.stock_quantity || 99) : 99, q + 1))} className="w-11 h-full flex items-center justify-center text-ink-700 hover:bg-ink-50">
                 <Plus className="w-4 h-4" strokeWidth={1.75} />
               </button>
             </div>

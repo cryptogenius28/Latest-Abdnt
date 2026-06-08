@@ -21,7 +21,9 @@ export const ProductCard = ({ product, highlight = '', onQuickView }) => {
   const fulfillIcon = product.fulfillment_type === 'dropship' ? <Package2 className="w-3 h-3" strokeWidth={1.75} /> : <Truck className="w-3 h-3" strokeWidth={1.75} />;
   const fulfillLabel = product.fulfillment_type === 'dropship' ? 'DROPSHIP' : product.fulfillment_type === 'digital' ? 'DIGITAL' : 'WAREHOUSE';
   const wished = isWished(product.id);
-  const inStock = (product.stock_quantity ?? 1) > 0;
+  // Warehouse gates on stock; dropship/digital are always purchasable.
+  const ft = product.fulfillment_type || 'warehouse';
+  const inStock = ft === 'warehouse' ? (product.stock_quantity ?? 1) > 0 : true;
 
   const handleAdd = (e) => {
     e.preventDefault();
