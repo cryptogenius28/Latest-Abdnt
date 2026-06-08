@@ -1,0 +1,44 @@
+{
+  "summary": "Final pre-deployment regression for Abundant Merchandise (Phases 5-8 + restock-alert polish). Backend: 21/21 pytest passed including all restock-alert paths (subscribe validation, idempotent upsert, admin list, manual dispatch, OOS skip, restocked dispatch). Frontend smoke: home/shop/PDP/digital catalog all green; PDP restock alert form submits successfully on OOS warehouse product and transitions to success state. Admin UI verified via code review (Playwright admin login was flaky as the task brief noted).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": { "ui_bugs": [], "integration_issues": [], "design_issues": [] },
+  "phase_results": {
+    "backend_catalog": "PASS — 106 products (50 warehouse / 51 dropship / 5 digital). Every product has fulfillment_type and reorder_point. fulfillment_type filter + sort=rating + sort=popular all working.",
+    "backend_low_stock": "PASS — /api/admin/inventory/low-stock returns {count, items, threshold_default}, items sorted by stock ascending. 401 for unauthenticated, 403 for non-admin user.",
+    "backend_order_flags": "PASS — admin orders include has_warehouse / has_dropship booleans on all returned docs.",
+    "backend_restock_subscribe": "PASS — invalid email → 400, unknown product → 404, dropship → 400, digital → 400, warehouse OOS → 201. Server lowercases email + upserts on (product_id,email) so duplicate submits return 201 with exactly 1 persisted doc.",
+    "backend_restock_admin_list": "PASS — /api/admin/restock-alerts returns {items, total_pending}, requires admin. OOS demo product present in items.",
+    "backend_restock_dispatch": "PASS — /api/admin/restock-alerts/run returns {ok, checked, ready, sent, failed}. OOS product's alerts remain pending (dispatcher correctly skips stock_quantity=0). When a TEST_ alert is seeded on an in-stock warehouse product, dispatcher marks it notified with delivery_status='skipped' (RESEND_API_KEY intentionally absent — expected per task brief).",
+    "backend_checkout": "PASS — POST /api/checkout/session with one warehouse + one dropship item returns a Stripe checkout URL and persists an order with has_warehouse=true AND has_dropship=true.",
+    "frontend_home": "PASS — home-hero (6 animate-hero-word spans), home-fulfillment-highlights, home-categories-grid, home-warehouse-picks all render.",
+    "frontend_shop": "PASS — filter-price-range with 2 thumbs, 5 shop-sort-pill-* pills, clicking 'rating' adds sort=rating to URL, applied warehouse pill found, shop-empty + shop-empty-illustration on no-results query.",
+    "frontend_pdp_oos_restock": "PASS — pdp-restock-alert form visible on Wooden Building Blocks (OOS warehouse). Submitting a fresh email transitions to pdp-restock-alert-success state with 'You're on the list' message and toast.",
+    "frontend_pdp_general": "PASS — pdp-breadcrumb, [data-fulfillment] banner present, pdp-tabs has 4 tabs, pdp-related-rail renders related items.",
+    "frontend_pdp_dropship": "PASS — Add to cart ENABLED, data-fulfillment='dropship'.",
+    "frontend_pdp_digital": "PASS — Add to cart ENABLED, data-fulfillment='digital', banner contains 'Instant'.",
+    "frontend_digital_catalog": "PASS — /shop?fulfillment=digital renders all 5 digital products (verified via API: Cinematic Lightroom Preset Pack, Deep Work Field Notes — eBook + Workbook, Monarch — Display + Mono Font Duo, Lo-Fi Ambient Sample Pack — Vol. 2, Founder OS — Notion Template).",
+    "frontend_admin": "PASS (by code review) — AdminOverviewBody renders LowStockCard + RestockAlertsCard inside grid-cols-1 lg:grid-cols-2. data-testid='admin-restock-alerts-card' and data-testid='admin-restock-alerts-send' both present; send button POSTs /api/admin/restock-alerts/run and refreshes the card via load(). Playwright admin login was flaky (login redirected to /shop and admin route required re-auth) — per task brief, falling back to code review."
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_final_regression.py",
+    "/app/test_reports/pytest/iteration7_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Idempotency for restock alerts is correctly implemented via upsert + unique index on (product_id,email). Email is lowercased before persistence which prevents case-based duplicates.",
+    "Dispatcher marks alerts notified even on failure (delivery_status='skipped') to prevent retry storms — sensible. With RESEND_API_KEY missing in this env, send_restock_alert returns False and rows are skipped, matching the task brief.",
+    "Minor: AdminOverviewBody routes /admin/* but admin-overview-cards (LowStockCard + RestockAlertsCard) only render at the index route. Confirmed correct based on code; just calling it out for clarity.",
+    "Minor: RestockAlertsCard polls only on mount (no auto-refresh on stock change). Acceptable since admin clicks 'Send ready alerts' which triggers reload — but the data could go stale until next dispatcher tick.",
+    "Minor: 401 console noise from /api/auth/me on anonymous pageviews still present (pre-existing observation from iteration 5)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration7_final_regression.py"
+  ],
+  "success_rate": { "backend": "100% (21/21)", "frontend": "100% (all asserted testids/flows green; admin verified by code review per task brief)" },
+  "test_credentials": "admin@abundant.com / Admin@2026 ; user@demo.com / User@123",
+  "seed_data_creation": "Test created and removed: (1) one TEST_ restock alert on OOS product (cleaned up), (2) one TEST_ restock alert on an in-stock warehouse product to verify the dispatcher (cleaned up). Backend checkout test created one new live Stripe test order (intentional — exercises Phase 5D flag logic end-to-end).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Reusable suite: /app/backend/tests/test_iteration7_final_regression.py (21 tests, ~4s). It self-cleans its alert docs. Note: CheckoutSession schema requires keys items[].qty (NOT quantity), shipping_address, shipping_method, origin_url. Note: server lowercases restock alert emails before persistence. Wooden Building Blocks id a1564e0609184308b975fa7b1427f449 remains the demo OOS warehouse product. Admin Playwright login is flaky in this preview (POST /api/auth/login succeeds and returns access_token + cookies, but Playwright subsequent navigation lost the session and got 401 + redirect to /login?next=/admin) — backend tests covered the admin endpoints exhaustively, so frontend admin UI was code-reviewed.",
+  "rca of the issue": "N/A — no defects found. Initial 3 pytest failures were test-script bugs (digital title prefixes, mixed-case email lookup, and an outdated checkout schema using quantity/success_url/cancel_url); fixed in place and all 21 tests now pass."
+}
