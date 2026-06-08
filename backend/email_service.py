@@ -304,3 +304,76 @@ async def send_contact_acknowledgement(to_email: str, name: str) -> bool:
     except Exception as e:  # noqa: BLE001
         logger.warning("Contact ack failed: %s", e)
         return False
+
+
+async def send_restock_alert(
+    to_email: str,
+    product: dict,
+    *,
+    store_url: str = "",
+    brand_color: str = "#E8621A",
+) -> bool:
+    """Notify a waitlisted customer that a product is back in stock."""
+    api_key = os.environ.get("RESEND_API_KEY", "").strip()
+    sender = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+    if not api_key:
+        logger.info("RESEND_API_KEY not set — skipping restock alert to %s (product %s)", to_email, product.get("id"))
+        return False
+    title = (product.get("title") or "Your saved product").strip()
+    image = ((product.get("images") or [""])[0]) or ""
+    price = float(product.get("sale_price") or product.get("price") or 0)
+    pid = product.get("id") or ""
+    stock = int(product.get("stock_quantity") or 0)
+    product_url = f"{store_url.rstrip('/')}/product/{pid}" if store_url else f"/product/{pid}"
+    urgency = "Only a few left" if 0 < stock <= 5 else f"{stock} now available"
+    html = f"""<!doctype html>
+<html><body style="margin:0;padding:0;background:#f6f6f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f6f6f7;padding:32px 0;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid #eee;">
+        <tr><td style="padding:28px;background:{brand_color};color:#fff;">
+          <p style="margin:0;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;">Restock Alert</p>
+          <h1 style="margin:8px 0 0;font-size:26px;font-weight:700;line-height:1.2;">It's back in stock.</h1>
+          <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.95);">You asked us to tell you — and here we are.</p>
+        </td></tr>
+        <tr><td style="padding:24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td width="160" valign="top">
+                {f'<img src="{image}" width="160" height="160" alt="" style="display:block;border-radius:10px;object-fit:cover;border:1px solid #eee;" />' if image else ''}
+              </td>
+              <td valign="top" style="padding-left:18px;">
+                <p style="margin:0;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:700;">{urgency}</p>
+                <h2 style="margin:6px 0 0;font-size:18px;color:#1a1a2e;line-height:1.3;">{title}</h2>
+                <p style="margin:10px 0 0;font-size:22px;color:#1a1a2e;font-weight:700;">${price:.2f}</p>
+                <a href="{product_url}" style="display:inline-block;margin-top:18px;background:{brand_color};color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:700;letter-spacing:0.3px;">Add to cart →</a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:13px;color:#666;line-height:1.6;">
+            Inventory moves fast — once this batch sells out, the next restock could be 2-3 weeks away. We won't email you again unless you sign up for another product.
+          </p>
+        </td></tr>
+        <tr><td style="padding:16px 24px;background:#fafafa;font-size:11px;color:#888;text-align:center;">
+          You're getting this because you subscribed to restock alerts for this product.<br/>
+          &copy; 2026 Abundant Merchandise.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+    try:
+        import resend
+        resend.api_key = api_key
+        params = {
+            "from": sender,
+            "to": [to_email],
+            "subject": f"Back in stock: {title}",
+            "html": html,
+        }
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info("Restock alert sent to %s for %s, email_id=%s", to_email, pid, (result or {}).get("id"))
+        return True
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Restock alert email failed for %s: %s", to_email, e)
+        return False

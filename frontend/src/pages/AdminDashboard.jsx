@@ -976,15 +976,49 @@ const LowStockCard = () => {
 const RestockAlertsCard = () => {
   const [data, setData] = useState({ items: [], total_pending: 0 });
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get('/admin/restock-alerts');
+      return r.data || { items: [], total_pending: 0 };
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    api.get('/admin/restock-alerts')
-      .then((r) => { if (!cancelled) setData(r.data || { items: [], total_pending: 0 }); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
+    (async () => {
+      const next = await load();
+      if (cancelled) return;
+      if (next) setData(next);
+      setLoading(false);
+    })();
     return () => { cancelled = true; };
-  }, []);
+  }, [load]);
+
+  const dispatchNow = async () => {
+    if (sending) return;
+    setSending(true);
+    try {
+      const r = await api.post('/admin/restock-alerts/run');
+      const { sent = 0, failed = 0, ready = 0 } = r.data || {};
+      if (sent > 0) {
+        toast.success(`Sent ${sent} restock email${sent === 1 ? '' : 's'}.`);
+      } else if (ready === 0) {
+        toast.info('No products are back in stock yet — nothing to send.');
+      } else if (failed > 0) {
+        toast.warning(`${failed} email${failed === 1 ? '' : 's'} skipped (RESEND_API_KEY not configured).`);
+      }
+      const next = await load();
+      if (next) setData(next);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Could not dispatch alerts.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   const items = data.items || [];
 
@@ -1003,7 +1037,16 @@ const RestockAlertsCard = () => {
             </span>
           )}
         </div>
-        <span className="text-xs text-ink-400">Top 5</span>
+        <button
+          type="button"
+          data-testid="admin-restock-alerts-send"
+          onClick={dispatchNow}
+          disabled={sending || data.total_pending === 0}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:text-brand-600 disabled:text-ink-400 disabled:cursor-not-allowed transition-colors"
+        >
+          {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" strokeWidth={2} />}
+          {sending ? 'Sending…' : 'Send ready alerts'}
+        </button>
       </div>
 
       {loading ? (

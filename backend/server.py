@@ -272,6 +272,60 @@ async def admin_restock_alerts(_: dict = Depends(require_admin)):
     return {"items": items, "total_pending": total_pending}
 
 
+async def _dispatch_restock_emails() -> dict:
+    """Find pending restock alerts whose product is back in stock, send emails,
+    and mark them notified. Returns counts."""
+    from email_service import send_restock_alert as _send_restock
+    from datetime import datetime as _dt, timezone as _tz
+
+    pending_ids = await db.restock_alerts.distinct("product_id", {"notified_at": None})
+    if not pending_ids:
+        return {"checked": 0, "ready": 0, "sent": 0, "failed": 0}
+    ready_products = {}
+    async for p in db.products.find(
+        {
+            "id": {"$in": pending_ids},
+            "fulfillment_type": "warehouse",
+            "stock_quantity": {"$gt": 0},
+        },
+        {"_id": 0, "id": 1, "title": 1, "price": 1, "sale_price": 1, "images": 1, "stock_quantity": 1, "reorder_point": 1},
+    ):
+        ready_products[p["id"]] = p
+
+    if not ready_products:
+        return {"checked": len(pending_ids), "ready": 0, "sent": 0, "failed": 0}
+
+    store_url = (os.environ.get("APP_URL") or os.environ.get("PUBLIC_APP_URL") or "").rstrip("/")
+    sent = failed = 0
+    cursor = db.restock_alerts.find(
+        {"notified_at": None, "product_id": {"$in": list(ready_products.keys())}},
+        {"_id": 1, "product_id": 1, "email": 1},
+    )
+    now_iso = _dt.now(_tz.utc).isoformat()
+    async for alert in cursor:
+        product = ready_products.get(alert["product_id"])
+        if not product:
+            continue
+        ok = await _send_restock(alert["email"], product, store_url=store_url)
+        # Always mark notified to avoid retry storms; record failure on the doc.
+        await db.restock_alerts.update_one(
+            {"_id": alert["_id"]},
+            {"$set": {"notified_at": now_iso, "delivery_status": "sent" if ok else "skipped"}},
+        )
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+    return {"checked": len(pending_ids), "ready": len(ready_products), "sent": sent, "failed": failed}
+
+
+@api.post("/admin/restock-alerts/run")
+async def admin_dispatch_restock(_: dict = Depends(require_admin)):
+    """Manual trigger — admin can immediately try to dispatch pending restock emails."""
+    result = await _dispatch_restock_emails()
+    return {"ok": True, **result}
+
+
 # ----------------------------- Products -----------------------------
 @api.get("/products", response_model=ProductListResponse)
 async def list_products(
@@ -620,6 +674,18 @@ async def on_startup():
                 logger.warning("cart recovery tick failed: %s", e)
 
         scheduler.add_job(_cart_recovery_tick, "interval", minutes=60, id="cart_recovery_tick", replace_existing=True)
+
+        # ----- Restock alert dispatcher (every 5 min) -----
+        async def _restock_tick():
+            try:
+                result = await _dispatch_restock_emails()
+                if result.get("sent") or result.get("failed"):
+                    logger.info("Restock tick: %s", result)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("restock tick failed: %s", e)
+
+        scheduler.add_job(_restock_tick, "interval", minutes=5, id="restock_tick", replace_existing=True)
+
         scheduler.start()
         app.state.scheduler = scheduler
         logger.info("Digest scheduler started (10-minute heartbeat)")
