@@ -248,7 +248,7 @@ const Home = () => {
               aria-label="Scroll categories left"
               data-testid="home-categories-scroll-left"
               onClick={() => scrollCategories('left')}
-              className="hidden lg:inline-flex items-center justify-center w-9 h-9 rounded-full border border-ink-300 text-ink-700 hover:border-brand hover:text-brand transition-colors"
+              className="hidden md:max-lg:inline-flex items-center justify-center w-9 h-9 rounded-full border border-ink-300 text-ink-700 hover:border-brand hover:text-brand transition-colors"
             >
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
             </button>
@@ -257,7 +257,7 @@ const Home = () => {
               aria-label="Scroll categories right"
               data-testid="home-categories-scroll-right"
               onClick={() => scrollCategories('right')}
-              className="hidden lg:inline-flex items-center justify-center w-9 h-9 rounded-full border border-ink-300 text-ink-700 hover:border-brand hover:text-brand transition-colors"
+              className="hidden md:max-lg:inline-flex items-center justify-center w-9 h-9 rounded-full border border-ink-300 text-ink-700 hover:border-brand hover:text-brand transition-colors"
             >
               <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
             </button>

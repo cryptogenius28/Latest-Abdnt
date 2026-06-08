@@ -1,66 +1,77 @@
 # Abundant Merchandise — PRD
 
 ## Original problem statement
-Continuation build (Phase 5 of an ongoing engagement). Existing React 19 + FastAPI + MongoDB e-commerce site at https://dropship-route.preview.emergentagent.com. Add Fulfillment Architecture across backend + admin without changing tech stack or design tokens.
+Continuation build of an existing React 19 + FastAPI + MongoDB e-commerce site (https://dropship-route.preview.emergentagent.com). The continuation prompt adds Phases 5 through 8: fulfillment architecture, homepage/category redesign, shop/filter upgrades, PDP upgrades. Design tokens and tech stack are locked.
 
 ## Tech stack
-- Frontend: React 19, CRA + craco, Tailwind CSS, shadcn/ui, lucide-react, react-router v6
+- Frontend: React 19, CRA + craco, Tailwind CSS, shadcn/ui + Radix primitives, lucide-react, react-router v6
 - Backend: FastAPI, Motor (async MongoDB), Pydantic v2
 - Auth: JWT (HttpOnly cookies + Bearer token), bcrypt
+- Payments: Stripe (sk_test live; pk_test in frontend env)
 - AI: Anthropic claude-sonnet-4-20250514 via Emergent Universal LLM key
 - Supervisor manages frontend (3000) and backend (8001); all backend routes under /api
 
-## Architecture decisions for Phase 5
-- `fulfillment_type` is the source-of-truth field on every product: `warehouse | dropship | digital`.
-- Warehouse products own stock (`stock_quantity`) and a `reorder_point` (default 10) used for low-stock alerts.
-- Dropship products carry `stock_quantity=0`; supplier manages real stock.
-- Digital products carry an optional `download_url`.
-- Orders capture which fulfillment paths are present via boolean flags `has_warehouse` / `has_dropship` set at checkout.
-
 ## User personas
-- Customer (default `role: customer`): browses storefront, places orders. Demo account: user@demo.com / User@123.
-- Admin (`role: admin`): manages catalog, inventory, orders, content. Seeded from ADMIN_EMAIL / ADMIN_PASSWORD env vars. Demo account: admin@abundant.com / Admin@2026.
+- Customer (default `role: customer`): browses storefront, places orders. Demo: user@demo.com / User@123.
+- Admin (`role: admin`): manages catalog, inventory, orders, content. Demo: admin@abundant.com / Admin@2026 (seeded from ADMIN_EMAIL / ADMIN_PASSWORD).
 
-## Core requirements (Phase 5 — implemented 2026-06-08)
-- **5A — Migration script** `backend/migrate_fulfillment.py`
-  - Backfills null/missing `fulfillment_type` → `"warehouse"`.
-  - Randomises catalog into ~50/50 warehouse/dropship split (per user choice for this iteration).
-  - Seeds `reorder_point=10` on any product missing the field.
-  - Zeroes dropship stock; gives warehouse-zero products a 3–80 starting quantity.
-- **5B — Admin product form fulfillment section**
-  - Fulfillment-type selector with three options.
-  - `warehouse` → stock_quantity + reorder_point inputs.
-  - `dropship` → read-only amber info box "Stock managed by supplier".
-  - `digital` → optional download_url input.
-  - Pydantic `ProductBase` gains `reorder_point: int = 10` and `download_url: Optional[str] = ""`. `ProductUpdate` accepts both.
-- **5C — Low-stock admin panel**
-  - Endpoint: `GET /api/admin/inventory/low-stock` returns `{ count, items[], threshold_default }` of warehouse products where `stock_quantity <= reorder_point`, sorted worst-first.
-  - Frontend: `LowStockCard` rendered on Admin Overview. Compact table (product, SKU truncated, qty, reorder pt, Edit). Count badge in header. Empty state shows green "All stocked ✓".
-  - Edit link navigates to /admin/products with `state.editProductId` to auto-open the editor for that product.
-- **5D — Order routing flags**
-  - `Order` model gains `has_warehouse: bool` and `has_dropship: bool` (default False).
-  - `commerce_routes.create_checkout_session` computes both from line items.
-  - `admin_list_orders` backfills these flags on legacy docs that pre-date Phase 5.
-  - Admin order modal lists each line item with a coloured Fulfillment badge (warehouse=blue, dropship=orange, digital=violet); the orders list table shows aggregate badges in a new "Fulfillment" column.
+## Architecture decisions
+- `fulfillment_type` (warehouse | dropship | digital) drives both the catalog and order routing.
+- Warehouse products own stock + reorder_point; dropship stock is 0 (supplier-managed); digital has optional download_url.
+- Orders capture `has_warehouse` / `has_dropship` flags at checkout for downstream routing.
+- The PriceRange dual-thumb slider uses Radix Slider primitives directly (shadcn's wrapper only renders one thumb).
+- Hero animation is CSS-only (`@keyframes fadeSlideUp` + `animation-delay` per word). No JS timers, respects `prefers-reduced-motion`.
+- Horizontal-scroll rails use the new `.scrollbar-hide` utility (CSS), `snap-x snap-mandatory`, `flex-shrink-0`.
+
+## Implemented — Phase 5 (2026-06-08)
+- 5A migrate_fulfillment.py — backfill + 50/50 random split + reorder_point seed.
+- 5B AdminDashboard product form — conditional fulfillment section (stock+reorder / dropship info / download_url).
+- 5C GET /api/admin/inventory/low-stock + LowStockCard on admin Overview.
+- 5D Order.has_warehouse / has_dropship — set at checkout, backfilled on legacy reads, surfaced in admin order list + modal.
+
+## Implemented — Phase 6 (2026-06-08)
+- 6A Hero — full-bleed split layout, animated word stagger (80ms), mosaic with scale-in, animated scroll chevron.
+- 6B Categories — horizontal snap-scroll on mobile, 4-col grid on desktop, brand-coloured hover bottom bar via `.category-tile::after`.
+- 6C FulfillmentHighlights — new 3-card section (Warehouse/Dropship/Digital) inserted between Trust Bar and Flash Sale.
+- 6D ProductCard — `.product-image-wrap::after` brand progress bar that fills on group hover.
+- 6E WarehousePicks — new homepage section that fetches `fulfillment_type=warehouse&sort=rating&page_size=8`.
+
+## Implemented — Phase 7 (2026-06-08)
+- 7A Fulfillment filter pills already wired through Filters.jsx + AppliedPills (Phase 5 work).
+- 7B Filters.jsx — Radix dual-thumb price range slider with 400ms debounce + Reset button.
+- 7C Shop.jsx — desktop sort renders as pill row; mobile keeps the existing `<select>`.
+- 7D Shop.jsx — SVG empty-state illustration (sad magnifying glass) for both search and filter empties; "Clear all filters" button.
+
+## Implemented — Phase 8 (2026-06-08)
+- 8A ProductDetail.jsx breadcrumb — Home > Category > truncated(40) title with proper test IDs.
+- 8B Tabs converted to shadcn `Tabs`; added 4th tab (Reviews) embedding ReviewSection; "Shipping & Returns" content updated with warehouse / dropship / digital language.
+- 8C Prominent fulfillment banner near price/ATC with `data-fulfillment` attribute and contextual headline (in stock count for warehouse).
+- 8D Related products horizontal-scroll rail (8 items minus the current product, ProductCard at w-64, snap-start).
 
 ## Files touched
-- backend/models.py — ProductBase + ProductUpdate
-- backend/commerce_models.py — Order
-- backend/commerce_routes.py — create_checkout_session, admin_list_orders
-- backend/server.py — /api/admin/inventory/low-stock
-- backend/migrate_fulfillment.py — NEW
-- frontend/src/pages/AdminDashboard.jsx — Fulfillment section, LowStockCard, OrderStatusModal line items, AdminOrders fulfillment column, FulfillmentBadge helper
-- frontend/src/constants/testIds.js — new ADMIN testids
-- backend/.env — added ADMIN_EMAIL, ADMIN_PASSWORD, JWT_SECRET (were missing)
-- memory/test_credentials.md — admin + customer credentials
+**Backend**
+- backend/models.py, backend/commerce_models.py, backend/commerce_routes.py, backend/server.py, backend/migrate_fulfillment.py (NEW), backend/.env (admin/JWT/Stripe secret)
+
+**Frontend**
+- src/pages/Home.jsx, src/pages/Shop.jsx, src/pages/ProductDetail.jsx, src/pages/AdminDashboard.jsx
+- src/components/product/Filters.jsx
+- src/components/home/FulfillmentHighlights.jsx (NEW), src/components/home/WarehousePicks.jsx (NEW)
+- src/App.css (keyframes, progress bar, scrollbar-hide, category-tile underline)
+- src/constants/testIds.js (new IDs across SHOP, FILTER, PDP, ADMIN)
+- frontend/.env (REACT_APP_STRIPE_PUBLISHABLE_KEY)
 
 ## Testing status (2026-06-08)
-- Backend testing agent: 12/12 passing, 1 skipped (live Stripe checkout — STRIPE_API_KEY not configured in this pod; synthetic order insertion validated 5D flags).
-- Frontend: visual sanity verified via Playwright screenshot script (low-stock card with 2 items renders; all three fulfillment-type variants of the form render correctly).
+- Phase 5 backend: iteration_4.json — 12/12 pass.
+- Phase 6/7/8 frontend: iteration_5.json — 44/44 assertions pass.
+- Live Stripe checkout exercised manually with mixed warehouse + dropship cart → order recorded `has_warehouse=true has_dropship=true`.
 
-## Prioritised backlog (Phase 6+ — awaiting spec)
-- P0 — Phase 6/7/8 specs from user (not yet provided).
-- P1 — STRIPE_API_KEY for end-to-end checkout testing.
-- P1 — Idempotent `--seed` flag on migrate_fulfillment.py so production runs don't re-randomise.
-- P2 — Surface fulfillment badge in admin products list column (currently only in form + orders).
-- P2 — Low-stock email digest (existing daily-digest scheduler could include low-stock summary).
+## Prioritised backlog
+- P1 — Real-time low-stock toast / email when a product crosses reorder_point.
+- P2 — Idempotent `--seed` flag on migrate_fulfillment.py.
+- P2 — Promote `home-fulfillment-cta-*` clicks to analytics events (track which fulfillment lane converts best).
+- P2 — Replace WarehousePicks's local QuickViewModal with the global one from Home (small DOM cleanup).
+- P3 — Surface fulfillment badge in the admin products list column.
+- P3 — Add daily admin email digest with a "Low Stock" section.
+
+## Credentials
+See `/app/memory/test_credentials.md`.
