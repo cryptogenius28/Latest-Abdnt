@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, X, Star } from 'lucide-react';
+import * as SliderPrimitive from '@radix-ui/react-slider';
 import { api } from '@/lib/api';
 import { FILTER, SHOP } from '@/constants/testIds';
 
@@ -24,6 +25,89 @@ const Check = ({ label, checked, onChange, count, testid }) => (
   </label>
 );
 
+// ---- Phase 7B — Dual-thumb price range slider ----
+const PRICE_FLOOR = 0;
+const PRICE_CEILING = 500;
+
+const PriceRange = ({ min, max, onCommit }) => {
+  const initial = [
+    Number.isFinite(min) ? Math.max(PRICE_FLOOR, min) : PRICE_FLOOR,
+    Number.isFinite(max) && max > 0 ? Math.min(PRICE_CEILING, max) : PRICE_CEILING,
+  ];
+  const [value, setValue] = useState(initial);
+  const timer = useRef(null);
+  const lastCommitted = useRef(initial.join(','));
+
+  // Keep slider in sync if URL is changed externally
+  useEffect(() => {
+    const next = [
+      Number.isFinite(min) ? Math.max(PRICE_FLOOR, min) : PRICE_FLOOR,
+      Number.isFinite(max) && max > 0 ? Math.min(PRICE_CEILING, max) : PRICE_CEILING,
+    ];
+    if (next.join(',') !== lastCommitted.current) {
+      setValue(next);
+      lastCommitted.current = next.join(',');
+    }
+  }, [min, max]);
+
+  const handleChange = (next) => {
+    setValue(next);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      lastCommitted.current = next.join(',');
+      onCommit(next[0], next[1]);
+    }, 400);
+  };
+
+  return (
+    <div className="pt-1 pb-2" data-testid={FILTER.priceRange}>
+      <div className="flex items-center justify-between text-sm font-semibold text-ink-900 mb-3">
+        <span data-testid={FILTER.priceRangeLabel}>
+          ${value[0]} – ${value[1]}{value[1] >= PRICE_CEILING ? '+' : ''}
+        </span>
+        {(value[0] > PRICE_FLOOR || value[1] < PRICE_CEILING) && (
+          <button
+            type="button"
+            data-testid={FILTER.priceRangeReset}
+            onClick={() => { setValue([PRICE_FLOOR, PRICE_CEILING]); onCommit(PRICE_FLOOR, PRICE_CEILING); lastCommitted.current = `${PRICE_FLOOR},${PRICE_CEILING}`; }}
+            className="text-xs font-semibold text-brand hover:text-brand-600"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+      <SliderPrimitive.Root
+        className="relative flex w-full touch-none select-none items-center h-6"
+        min={PRICE_FLOOR}
+        max={PRICE_CEILING}
+        step={10}
+        value={value}
+        onValueChange={handleChange}
+        minStepsBetweenThumbs={1}
+        aria-label="Price range"
+      >
+        <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-ink-200">
+          <SliderPrimitive.Range className="absolute h-full bg-brand" />
+        </SliderPrimitive.Track>
+        <SliderPrimitive.Thumb
+          data-testid={FILTER.priceRangeThumbMin}
+          className="block h-5 w-5 rounded-full border-2 border-brand bg-white shadow-md transition-shadow hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          aria-label="Minimum price"
+        />
+        <SliderPrimitive.Thumb
+          data-testid={FILTER.priceRangeThumbMax}
+          className="block h-5 w-5 rounded-full border-2 border-brand bg-white shadow-md transition-shadow hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          aria-label="Maximum price"
+        />
+      </SliderPrimitive.Root>
+      <div className="mt-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-ink-400">
+        <span>${PRICE_FLOOR}</span>
+        <span>${PRICE_CEILING}+</span>
+      </div>
+    </div>
+  );
+};
+
 export const Filters = ({
   categories = [],
   brands = [],
@@ -37,7 +121,6 @@ export const Filters = ({
     if (cur.has(value)) cur.delete(value); else cur.add(value);
     onChange({ ...selected, [key]: Array.from(cur) });
   };
-  const setPrice = (which, val) => onChange({ ...selected, [which]: val });
   const setOnSale = (val) => onChange({ ...selected, on_sale: val });
   const setRating = (val) => onChange({ ...selected, min_rating: selected.min_rating === val ? '' : val });
 
@@ -70,23 +153,11 @@ export const Filters = ({
       )}
 
       <Group title="Price">
-        <div className="flex items-center gap-2">
-          <input
-            data-testid={FILTER.priceMin}
-            type="number" min="0" placeholder="Min"
-            value={selected.min_price || ''}
-            onChange={(e) => setPrice('min_price', e.target.value)}
-            className="w-full h-9 px-2 text-sm bg-white border border-ink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-          />
-          <span className="text-ink-400">—</span>
-          <input
-            data-testid={FILTER.priceMax}
-            type="number" min="0" placeholder="Max"
-            value={selected.max_price || ''}
-            onChange={(e) => setPrice('max_price', e.target.value)}
-            className="w-full h-9 px-2 text-sm bg-white border border-ink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-          />
-        </div>
+        <PriceRange
+          min={Number(selected.min_price || 0)}
+          max={Number(selected.max_price || 500)}
+          onCommit={(lo, hi) => onChange({ ...selected, min_price: lo > 0 ? String(lo) : '', max_price: hi < 500 ? String(hi) : '' })}
+        />
       </Group>
 
       {brands.length > 0 && (

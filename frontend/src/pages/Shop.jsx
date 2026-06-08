@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Search as SearchIcon } from 'lucide-react';
+import { SlidersHorizontal, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Filters, AppliedPills, useBrands, useFacets } from '@/components/product/Filters';
@@ -9,11 +9,11 @@ import { QuickViewModal } from '@/components/product/QuickViewModal';
 import { SHOP } from '@/constants/testIds';
 
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'rating', label: 'Top Rated' },
-  { value: 'popular', label: 'Most Popular' },
+  { value: 'newest', label: 'Newest', shortLabel: 'Newest' },
+  { value: 'price_asc', label: 'Price: Low to High', shortLabel: 'Price ↑' },
+  { value: 'price_desc', label: 'Price: High to Low', shortLabel: 'Price ↓' },
+  { value: 'rating', label: 'Top Rated', shortLabel: 'Top Rated' },
+  { value: 'popular', label: 'Most Popular', shortLabel: 'Popular' },
 ];
 
 const parseList = (val) => (val ? val.split(',').filter(Boolean) : []);
@@ -148,6 +148,13 @@ const Shop = ({ fixedCategory = null, headerTitle = 'All Products', headerSub = 
     setParams(next);
   };
 
+  const clearAllFilters = () => {
+    const next = new URLSearchParams();
+    if (params.get('q')) next.set('q', params.get('q'));
+    if (params.get('sort')) next.set('sort', params.get('sort'));
+    setParams(next);
+  };
+
   const clearSearch = () => {
     setSearchInput('');
     const next = new URLSearchParams(location.search);
@@ -179,11 +186,53 @@ const Shop = ({ fixedCategory = null, headerTitle = 'All Products', headerSub = 
     (!fixedCategory ? selected.category.length : 0)
   );
 
+  const NoResultsIllustration = (
+    <svg
+      data-testid={SHOP.emptyIllustration}
+      viewBox="0 0 120 120"
+      width="120"
+      height="120"
+      aria-hidden="true"
+      className="mx-auto mb-5"
+    >
+      <defs>
+        <linearGradient id="lens" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fff5ed" />
+          <stop offset="100%" stopColor="#ffe0cc" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="32" fill="url(#lens)" stroke="#E8621A" strokeWidth="4" />
+      <line x1="74" y1="74" x2="100" y2="100" stroke="#E8621A" strokeWidth="6" strokeLinecap="round" />
+      {/* Sad face */}
+      <circle cx="42" cy="46" r="2.5" fill="#1f1f23" />
+      <circle cx="58" cy="46" r="2.5" fill="#1f1f23" />
+      <path d="M40 62 Q50 54 60 62" stroke="#1f1f23" strokeWidth="3" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+
+  const filterEmptyState = !q && !loading && data.items.length === 0 ? (
+    <div data-testid={SHOP.empty} className="text-center py-16 px-4 border border-dashed border-ink-200 rounded-xl bg-white">
+      {NoResultsIllustration}
+      <h3 className="font-heading text-xl font-bold text-ink-900">No products found</h3>
+      <p className="text-sm text-ink-500 mt-2 max-w-md mx-auto">
+        Try adjusting your filters or search term.
+      </p>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          data-testid={SHOP.emptyClearAll}
+          onClick={clearAllFilters}
+          className="mt-6 inline-flex items-center justify-center h-10 px-5 text-sm font-semibold text-white bg-brand hover:bg-brand-600 rounded-md focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:outline-none"
+        >
+          Clear all filters
+        </button>
+      )}
+    </div>
+  ) : null;
+
   const searchEmptyState = q && !loading && !data.items.length ? (
     <div data-testid={SHOP.empty} className="text-center py-16 px-4 border border-dashed border-ink-200 rounded-xl bg-white">
-      <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-brand/10 inline-flex items-center justify-center">
-        <SearchIcon className="w-6 h-6 text-brand" strokeWidth={1.75} />
-      </div>
+      {NoResultsIllustration}
       <h3 className="font-heading text-xl font-bold text-ink-900">No results for &ldquo;{q}&rdquo;</h3>
       <p className="text-sm text-ink-500 mt-2 max-w-md mx-auto">
         We couldn&apos;t find any products matching your search{hasActiveFilters ? ' and applied filters' : ''}. Try a different keyword or browse all products.
@@ -289,10 +338,36 @@ const Shop = ({ fixedCategory = null, headerTitle = 'All Products', headerSub = 
             data-testid={SHOP.sortSelect}
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="h-10 px-3 text-sm bg-white border border-ink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            className="md:hidden h-10 px-3 text-sm bg-white border border-ink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           >
             {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          <div
+            role="radiogroup"
+            aria-label="Sort products"
+            className="hidden md:flex items-center gap-1.5 flex-wrap"
+          >
+            {SORT_OPTIONS.map((o) => {
+              const active = sort === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  data-testid={`${SHOP.sortPill}-${o.value}`}
+                  onClick={() => setSort(o.value)}
+                  className={`inline-flex items-center h-9 px-3.5 text-xs font-semibold rounded-full border transition-all duration-300 focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:outline-none ${
+                    active
+                      ? 'bg-brand border-brand text-white shadow-sm'
+                      : 'bg-white border-ink-200 text-ink-700 hover:border-brand hover:text-brand'
+                  }`}
+                >
+                  {o.shortLabel || o.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -340,7 +415,7 @@ const Shop = ({ fixedCategory = null, headerTitle = 'All Products', headerSub = 
             loading={loading}
             highlight={q}
             onQuickView={openQuickView}
-            emptyState={searchEmptyState}
+            emptyState={searchEmptyState || filterEmptyState}
           />
 
           {data.pages > 1 && (

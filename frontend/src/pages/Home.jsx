@@ -1,6 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, ShieldCheck, RotateCcw, Headphones } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Headphones,
+  ChevronDown,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { HOME_PAGE } from '@/constants/testIds';
@@ -8,6 +16,8 @@ import { FlashSale } from '@/components/home/FlashSale';
 import { TopBrands } from '@/components/home/TopBrands';
 import { Testimonials } from '@/components/home/Testimonials';
 import { NewsletterBanner } from '@/components/home/NewsletterBanner';
+import { FulfillmentHighlights } from '@/components/home/FulfillmentHighlights';
+import { WarehousePicks } from '@/components/home/WarehousePicks';
 import { RecentlyViewedRail } from '@/components/product/RecentlyViewedRail';
 import { QuickViewModal } from '@/components/product/QuickViewModal';
 
@@ -42,6 +52,10 @@ const BLOG_POSTS = [
   },
 ];
 
+const HERO_HEADLINE_TOP = ['Abundant', 'deals.'];
+const HERO_HEADLINE_BOTTOM = ['Every', 'day,', 'every', 'aisle.'];
+const TOTAL_HERO_WORDS = HERO_HEADLINE_TOP.length + HERO_HEADLINE_BOTTOM.length;
+
 const Home = () => {
   const [categories, setCategories] = useState([]);
   const [featured, setFeatured] = useState([]);
@@ -49,6 +63,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const categoryRowRef = useRef(null);
 
   useEffect(() => { document.title = 'Abundant Merchandise — Quality Deals, Every Day'; }, []);
 
@@ -72,57 +87,130 @@ const Home = () => {
 
   const openQuickView = (p) => { setQuickViewProduct(p); setQuickViewOpen(true); };
 
+  const scrollCategories = (direction) => {
+    const row = categoryRowRef.current;
+    if (!row) return;
+    const card = row.querySelector('[data-testid="home-category-tile"]');
+    const step = card ? card.clientWidth + 16 : 200;
+    row.scrollBy({ left: direction === 'left' ? -step * 2 : step * 2, behavior: 'smooth' });
+  };
+
   return (
     <div data-testid={HOME_PAGE.root}>
-      {/* HERO */}
-      <section className="relative bg-ink-900 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
+      {/* ============= HERO — Phase 6A ============= */}
+      <section
+        data-testid="home-hero"
+        className="relative bg-ink-900 text-white overflow-hidden min-h-[85svh] md:min-h-[80vh] flex items-center"
+      >
+        {/* Background image */}
+        <div className="absolute inset-0">
           <img
             src="https://images.pexels.com/photos/5625003/pexels-photo-5625003.jpeg"
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-40"
+            loading="eager"
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-ink-900 via-ink-900/85 to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        {/* Dark overlay (left 55%) */}
+        <div className="absolute inset-0 bg-gradient-to-r from-ink-900 via-ink-900/85 to-ink-900/20 md:to-transparent" />
+
+        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 grid grid-cols-1 md:grid-cols-[55%_45%] gap-10 items-center">
           <div>
-            <span className="inline-block px-3 py-1 bg-brand/15 border border-brand/30 text-brand text-[11px] font-bold uppercase tracking-widest rounded-full">
+            <span
+              className="animate-hero-fade inline-block px-3 py-1 bg-brand/15 border border-brand/30 text-brand text-[11px] font-bold uppercase tracking-widest rounded-full"
+              style={{ animationDelay: `${TOTAL_HERO_WORDS * 80 + 100}ms` }}
+            >
               Flash Sale · Limited Time
             </span>
-            <h1 className="mt-5 font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              Abundant deals.<br />
-              <span className="text-brand">Every day, every aisle.</span>
+            <h1
+              data-testid="home-hero-headline"
+              className="mt-5 font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]"
+            >
+              {HERO_HEADLINE_TOP.map((w, i) => (
+                <span
+                  key={`top-${i}`}
+                  className="animate-hero-word"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  {w}{i < HERO_HEADLINE_TOP.length - 1 ? '\u00A0' : ''}
+                </span>
+              ))}
+              <br />
+              {HERO_HEADLINE_BOTTOM.map((w, i) => (
+                <span
+                  key={`bot-${i}`}
+                  className="animate-hero-word text-brand"
+                  style={{ animationDelay: `${(HERO_HEADLINE_TOP.length + i) * 80}ms` }}
+                >
+                  {w}{i < HERO_HEADLINE_BOTTOM.length - 1 ? '\u00A0' : ''}
+                </span>
+              ))}
             </h1>
-            <p className="mt-5 text-base md:text-lg text-ink-300 max-w-lg leading-relaxed">
+            <p
+              className="animate-hero-fade mt-5 text-base md:text-lg text-ink-300 max-w-lg leading-relaxed"
+              style={{ animationDelay: `${TOTAL_HERO_WORDS * 80 + 200}ms` }}
+            >
               Shop thousands of products across electronics, home, fashion, and more — with up to 40% off
               this week and free shipping on orders over $49.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div
+              className="animate-hero-fade mt-8 flex flex-wrap gap-3"
+              style={{ animationDelay: `${TOTAL_HERO_WORDS * 80 + 300}ms` }}
+            >
               <Link
                 to="/shop"
                 data-testid={HOME_PAGE.heroCta}
-                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-600 text-white font-semibold rounded-md px-6 py-3 transition-colors"
+                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-600 text-white font-semibold rounded-md px-6 py-3 transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:outline-none"
               >
                 Shop the sale <ArrowRight className="w-4 h-4" strokeWidth={2} />
               </Link>
               <Link
                 to="/category/electronics"
                 data-testid={HOME_PAGE.heroSecondaryCta}
-                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold rounded-md px-6 py-3 transition-colors border border-white/20"
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold rounded-md px-6 py-3 transition-colors border border-white/20 min-h-[44px]"
               >
                 Browse Electronics
               </Link>
             </div>
           </div>
+
+          {/* Right mosaic (desktop only) */}
           <div className="hidden md:block">
             <div className="grid grid-cols-2 gap-4">
-              <img src="https://images.pexels.com/photos/705164/computer-laptop-work-place-camera-705164.jpeg" alt="" className="rounded-xl aspect-[4/5] object-cover" />
+              <img
+                src="https://images.pexels.com/photos/705164/computer-laptop-work-place-camera-705164.jpeg"
+                alt=""
+                className="animate-hero-mosaic rounded-2xl aspect-[4/5] object-cover shadow-2xl"
+                style={{ animationDelay: '500ms' }}
+                loading="lazy"
+              />
               <div className="space-y-4 pt-10">
-                <img src="https://images.unsplash.com/photo-1724582586529-62622e50c0b3" alt="" className="rounded-xl aspect-square object-cover" />
-                <img src="https://images.pexels.com/photos/13158675/pexels-photo-13158675.jpeg" alt="" className="rounded-xl aspect-square object-cover" />
+                <img
+                  src="https://images.unsplash.com/photo-1724582586529-62622e50c0b3"
+                  alt=""
+                  className="animate-hero-mosaic rounded-2xl aspect-square object-cover shadow-2xl"
+                  style={{ animationDelay: '650ms' }}
+                  loading="lazy"
+                />
+                <img
+                  src="https://images.pexels.com/photos/13158675/pexels-photo-13158675.jpeg"
+                  alt=""
+                  className="animate-hero-mosaic rounded-2xl aspect-square object-cover shadow-2xl"
+                  style={{ animationDelay: '800ms' }}
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Scroll-down chevron */}
+        <div
+          aria-hidden="true"
+          className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 flex-col items-center text-white/60 animate-bounce"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest">Scroll</span>
+          <ChevronDown className="w-4 h-4 mt-0.5" strokeWidth={2} />
         </div>
       </section>
 
@@ -141,33 +229,71 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ============= 6C — Fulfillment Highlights ============= */}
+      <FulfillmentHighlights />
+
       {/* FLASH SALE */}
       <FlashSale />
 
-      {/* CATEGORIES */}
+      {/* ============= 6B — Categories (horizontal scroll on mobile) ============= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex items-end justify-between mb-8">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-brand">Shop by department</p>
             <h2 className="font-heading text-2xl md:text-3xl font-bold text-ink-900 mt-1">Explore categories</h2>
           </div>
-          <Link to="/shop" data-testid={HOME_PAGE.shopAllCta} className="hidden md:inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-600">
-            View all <ArrowRight className="w-4 h-4" strokeWidth={2} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Scroll categories left"
+              data-testid="home-categories-scroll-left"
+              onClick={() => scrollCategories('left')}
+              className="hidden lg:inline-flex items-center justify-center w-9 h-9 rounded-full border border-ink-300 text-ink-700 hover:border-brand hover:text-brand transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              aria-label="Scroll categories right"
+              data-testid="home-categories-scroll-right"
+              onClick={() => scrollCategories('right')}
+              className="hidden lg:inline-flex items-center justify-center w-9 h-9 rounded-full border border-ink-300 text-ink-700 hover:border-brand hover:text-brand transition-colors"
+            >
+              <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
+            </button>
+            <Link to="/shop" data-testid={HOME_PAGE.shopAllCta} className="hidden md:inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-600 ml-2">
+              View all <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            </Link>
+          </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6" data-testid={HOME_PAGE.categoriesGrid}>
+
+        {/* Mobile: horizontal scroll. Desktop: 4-col grid */}
+        <div
+          ref={categoryRowRef}
+          className="
+            lg:grid lg:grid-cols-4 lg:gap-6
+            flex lg:flex-wrap gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide
+            -mx-4 px-4 lg:mx-0 lg:px-0 lg:overflow-visible
+          "
+          data-testid={HOME_PAGE.categoriesGrid}
+        >
           {categories.slice(0, 8).map((c) => (
             <Link
               key={c.slug}
               to={`/category/${c.slug}`}
               data-testid={HOME_PAGE.categoryTile}
-              className="group relative aspect-[5/6] rounded-xl overflow-hidden border border-ink-100 hover:border-brand/30 hover:shadow-md transition-all"
+              className="category-tile group relative aspect-[5/6] rounded-xl overflow-hidden border border-ink-100 hover:border-brand/30 hover:shadow-md transition-all w-40 lg:w-auto flex-shrink-0 snap-start"
             >
-              <img src={c.image} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+              <img
+                src={c.image}
+                alt={c.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-ink-900/85 via-ink-900/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h3 className="text-white font-semibold text-base">{c.name}</h3>
-                <p className="text-white/70 text-xs mt-0.5">{c.count} items</p>
+              <div className="absolute bottom-0 left-0 right-0 p-4 pb-5">
+                <h3 className="text-white font-semibold text-sm md:text-base">{c.name}</h3>
+                <p className="text-white/70 text-[11px] md:text-xs mt-0.5">{c.count} items</p>
               </div>
             </Link>
           ))}
@@ -192,11 +318,14 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ============= 6E — Warehouse Picks ============= */}
+      <WarehousePicks />
+
       {/* PROMO BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-8 relative rounded-xl overflow-hidden bg-ink-900 text-white p-8 md:p-12 min-h-[260px] flex items-end">
-            <img src="https://images.pexels.com/photos/5872176/pexels-photo-5872176.jpeg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+            <img src="https://images.pexels.com/photos/5872176/pexels-photo-5872176.jpeg" alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" loading="lazy" />
             <div className="relative">
               <p className="text-xs font-bold uppercase tracking-widest text-brand">New arrivals</p>
               <h3 className="font-heading text-2xl md:text-3xl font-bold mt-2">Fresh picks for your workspace</h3>
@@ -274,16 +403,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TOP BRANDS */}
       <TopBrands />
-
-      {/* RECENTLY VIEWED */}
       <RecentlyViewedRail title="Pick up where you left off" />
-
-      {/* TESTIMONIALS */}
       <Testimonials />
-
-      {/* NEWSLETTER */}
       <NewsletterBanner />
 
       <QuickViewModal

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronRight, Truck, RotateCcw, ShieldCheck, Star, Plus, Minus, Heart, Share2, Package2, ZoomIn } from 'lucide-react';
+import { ChevronRight, Truck, RotateCcw, ShieldCheck, Star, Plus, Minus, Heart, Share2, Package2, ZoomIn, HardDrive, Warehouse, Globe } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { api, formatPrice } from '@/lib/api';
-import { ProductGrid } from '@/components/product/ProductGrid';
+import { ProductCard } from '@/components/product/ProductCard';
 import { ReviewSection } from '@/components/product/ReviewSection';
 import { PDP, WISHLIST, CART } from '@/constants/testIds';
 import { useCart } from '@/context/CartContext';
@@ -56,11 +57,11 @@ const ProductDetail = () => {
         const initial = {};
         (r.data?.variants || []).forEach((v) => { if (v.options?.length) initial[v.name] = v.options[0]; });
         if (!cancelled) setVariants(initial);
-        // Related: same category
+        // Related: same category — keep up to 7 for the rail (exclude current product)
         if (r.data?.category) {
           try {
             const rr = await api.get('/products', { params: { category: r.data.category, page_size: 8 } });
-            if (!cancelled) setRelated((rr.data?.items || []).filter((p) => p.id !== id).slice(0, 4));
+            if (!cancelled) setRelated((rr.data?.items || []).filter((p) => p.id !== id).slice(0, 7));
           } catch { /* noop */ }
         }
       } catch (err) {
@@ -107,10 +108,33 @@ const ProductDetail = () => {
   const images = product.images?.length ? product.images : ['https://placehold.co/800x800?text=No+Image'];
 
   const fulfillmentMeta = {
-    warehouse: { icon: Truck, label: 'Warehouse fulfillment', sub: 'Ships in 1-2 business days' },
-    dropship: { icon: Package2, label: 'Dropship', sub: 'Direct from supplier · 3-7 days' },
-    digital: { icon: ShieldCheck, label: 'Digital delivery', sub: 'Instant access on purchase' },
-  }[product.fulfillment_type] || { icon: Truck, label: 'Standard delivery', sub: '' };
+    warehouse: {
+      icon: Warehouse,
+      label: 'Warehouse fulfillment',
+      sub: 'Ships in 1-2 business days',
+      banner: { headline: 'In Stock · Ships in 1-2 days', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+    },
+    dropship: {
+      icon: Globe,
+      label: 'Dropship',
+      sub: 'Direct from supplier · 3-7 days',
+      banner: { headline: 'Ships from Supplier · 3-7 days', tone: 'bg-blue-50 text-blue-800 border-blue-200' },
+    },
+    digital: {
+      icon: HardDrive,
+      label: 'Digital delivery',
+      sub: 'Instant access on purchase',
+      banner: { headline: 'Digital Download · Instant', tone: 'bg-violet-50 text-violet-800 border-violet-200' },
+    },
+  }[product.fulfillment_type] || {
+    icon: Truck,
+    label: 'Standard delivery',
+    sub: '',
+    banner: { headline: 'Standard delivery', tone: 'bg-ink-50 text-ink-700 border-ink-200' },
+  };
+
+  const fulfillmentBanner = fulfillmentMeta.banner;
+  const warehouseOutOfStock = product.fulfillment_type === 'warehouse' && !inStock;
 
   const addToCart = () => {
     if (!inStock) return;
@@ -121,15 +145,21 @@ const ProductDetail = () => {
 
   return (
     <div data-testid={PDP.page} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-      {/* Breadcrumbs */}
-      <nav data-testid={PDP.breadcrumb} className="flex items-center gap-1.5 text-xs text-ink-500 mb-6">
-        <Link to="/" className="hover:text-brand">Home</Link>
+      {/* Breadcrumbs — Phase 8A */}
+      <nav data-testid={PDP.breadcrumb} className="flex items-center gap-1.5 text-xs text-ink-500 mb-6" aria-label="Breadcrumb">
+        <Link to="/" data-testid={PDP.breadcrumbHome} className="hover:text-brand transition-colors">Home</Link>
         <ChevronRight className="w-3 h-3" strokeWidth={2} />
-        <Link to="/shop" className="hover:text-brand">Shop</Link>
+        <Link
+          to={`/category/${product.category}`}
+          data-testid={PDP.breadcrumbCategory}
+          className="hover:text-brand transition-colors capitalize"
+        >
+          {product.category.replace(/-/g, ' ')}
+        </Link>
         <ChevronRight className="w-3 h-3" strokeWidth={2} />
-        <Link to={`/category/${product.category}`} className="hover:text-brand capitalize">{product.category.replace('-', ' ')}</Link>
-        <ChevronRight className="w-3 h-3" strokeWidth={2} />
-        <span className="text-ink-700 truncate">{product.title}</span>
+        <span className="text-ink-900 font-medium truncate max-w-xs" title={product.title}>
+          {product.title.length > 40 ? `${product.title.slice(0, 40)}…` : product.title}
+        </span>
       </nav>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
@@ -201,6 +231,21 @@ const ProductDetail = () => {
             <span className={`text-3xl md:text-4xl font-bold ${onSale ? 'text-red-600' : 'text-ink-900'}`}>{formatPrice(finalPrice)}</span>
             {onSale && <span className="text-lg text-ink-400 line-through">{formatPrice(product.price)}</span>}
             {onSale && <span className="ml-2 px-2 py-1 bg-red-50 text-red-600 text-xs font-bold rounded">SAVE {formatPrice(product.price - product.sale_price)}</span>}
+          </div>
+
+          {/* Phase 8C — Prominent fulfillment banner */}
+          <div
+            data-testid={PDP.fulfillmentBanner}
+            data-fulfillment={product.fulfillment_type || 'warehouse'}
+            className={`mt-4 inline-flex items-center gap-2 px-3.5 py-2 rounded-md border ${fulfillmentBanner.tone}`}
+          >
+            <fulfillmentMeta.icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.75} />
+            <span className="text-sm font-semibold">
+              {warehouseOutOfStock ? 'Out of stock — restocking soon' : fulfillmentBanner.headline}
+            </span>
+            {product.fulfillment_type === 'warehouse' && inStock && (
+              <span className="text-xs font-medium opacity-80">· {product.stock_quantity} in stock</span>
+            )}
           </div>
 
           <LowStockBadge stock={product.stock_quantity || 0} viewCount={product.view_count || 0} />
@@ -307,26 +352,28 @@ const ProductDetail = () => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — Phase 8B */}
       <div className="mt-16">
-        <div className="border-b border-ink-200 flex items-center gap-6">
-          {[
-            { id: 'description', label: 'Description' },
-            { id: 'specs', label: 'Specifications' },
-            { id: 'shipping', label: 'Shipping & Returns' },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`relative pb-3 text-sm font-semibold transition-colors ${tab === t.id ? 'text-brand' : 'text-ink-500 hover:text-ink-900'}`}
-            >
-              {t.label}
-              {tab === t.id && <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-brand" />}
-            </button>
-          ))}
-        </div>
-        <div className="pt-6 max-w-3xl">
-          {tab === 'description' && (
+        <Tabs value={tab} onValueChange={setTab} data-testid={PDP.tabs}>
+          <TabsList className="h-auto p-0 bg-transparent border-b border-ink-200 w-full justify-start gap-6 rounded-none flex-wrap">
+            {[
+              { id: 'description', label: 'Description' },
+              { id: 'specs', label: 'Specifications' },
+              { id: 'reviews', label: 'Reviews' },
+              { id: 'shipping', label: 'Shipping & Returns' },
+            ].map((t) => (
+              <TabsTrigger
+                key={t.id}
+                value={t.id}
+                data-testid={`${PDP.tabTrigger}-${t.id}`}
+                className="relative h-auto rounded-none border-0 px-0 pb-3 text-sm font-semibold text-ink-500 hover:text-ink-900 data-[state=active]:text-brand data-[state=active]:shadow-none data-[state=active]:bg-transparent transition-colors after:absolute after:-bottom-px after:left-0 after:right-0 after:h-0.5 after:bg-brand after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300"
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="description" className="pt-6 max-w-3xl" data-testid={`${PDP.tabContent}-description`}>
             <div className="prose prose-sm max-w-none text-ink-700 leading-relaxed">
               <p>{product.description || 'No description provided.'}</p>
               {product.tags?.length > 0 && (
@@ -337,40 +384,72 @@ const ProductDetail = () => {
                 </div>
               )}
             </div>
-          )}
-          {tab === 'specs' && (
-            <div>
-              {product.specs && Object.keys(product.specs).length ? (
-                <dl className="divide-y divide-ink-100 border border-ink-200 rounded-md overflow-hidden">
-                  {Object.entries(product.specs).map(([k, v]) => (
-                    <div key={k} className="grid grid-cols-3 px-4 py-3 text-sm">
-                      <dt className="font-semibold text-ink-900 col-span-1 capitalize">{k.replace('_', ' ')}</dt>
-                      <dd className="text-ink-700 col-span-2">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : <p className="text-sm text-ink-500">No specifications listed.</p>}
-            </div>
-          )}
-          {tab === 'shipping' && (
+          </TabsContent>
+
+          <TabsContent value="specs" className="pt-6 max-w-3xl" data-testid={`${PDP.tabContent}-specs`}>
+            {product.specs && Object.keys(product.specs).length ? (
+              <dl className="divide-y divide-ink-100 border border-ink-200 rounded-md overflow-hidden">
+                {Object.entries(product.specs).map(([k, v]) => (
+                  <div key={k} className="grid grid-cols-3 px-4 py-3 text-sm">
+                    <dt className="font-semibold text-ink-900 col-span-1 capitalize">{k.replace(/_/g, ' ')}</dt>
+                    <dd className="text-ink-700 col-span-2">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : <p className="text-sm text-ink-500">No specifications listed.</p>}
+          </TabsContent>
+
+          <TabsContent value="reviews" className="pt-6" data-testid={`${PDP.tabContent}-reviews`}>
+            <ReviewSection productId={product.id} />
+          </TabsContent>
+
+          <TabsContent value="shipping" className="pt-6 max-w-3xl" data-testid={`${PDP.tabContent}-shipping`}>
             <div className="text-sm text-ink-700 space-y-3 leading-relaxed">
-              <p><strong>Shipping:</strong> Free standard shipping on orders over $49. Expedited options available at checkout.</p>
-              <p><strong>Returns:</strong> 30-day no-questions-asked returns. Items must be unused and in original packaging.</p>
+              <p>
+                <strong>Warehouse items</strong> ship within 1-2 business days from Reno, NV.{' '}
+                <strong>Dropship items</strong> ship within 3-7 days from the supplier.
+                <strong> Digital items</strong> are delivered instantly via email after payment.
+              </p>
+              <p><strong>Returns:</strong> 30-day hassle-free returns on physical goods. Items must be unused and in original packaging.</p>
               <p><strong>Warranty:</strong> Manufacturer warranty applies where indicated.</p>
             </div>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Reviews */}
-      <ReviewSection productId={product.id} />
-
-      {/* Related */}
-      {related.length > 0 && (
-        <div className="mt-20">
-          <h2 className="font-heading text-2xl font-bold text-ink-900 mb-6">You may also like</h2>
-          <ProductGrid products={related} />
-        </div>
+      {/* Phase 8D — Related products horizontal rail */}
+      {(loading || related.length > 0) && (
+        <section className="mt-20" data-testid={PDP.relatedRail}>
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-brand">More to explore</p>
+              <h2 className="font-heading text-2xl font-bold text-ink-900 mt-1">You might also like</h2>
+            </div>
+            <Link
+              to={`/category/${product.category}`}
+              className="hidden md:inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-600"
+            >
+              View category <ChevronRight className="w-4 h-4" strokeWidth={2} />
+            </Link>
+          </div>
+          <div className="-mx-4 px-4 md:mx-0 md:px-0">
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="w-64 flex-shrink-0">
+                      <div className="skeleton aspect-square rounded-xl" />
+                      <div className="skeleton h-4 w-3/4 rounded mt-3" />
+                      <div className="skeleton h-4 w-1/3 rounded mt-2" />
+                    </div>
+                  ))
+                : related.map((p) => (
+                    <div key={p.id} data-testid={PDP.relatedCard} className="w-64 flex-shrink-0 snap-start">
+                      <ProductCard product={p} />
+                    </div>
+                  ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Recently viewed (exclude current) */}

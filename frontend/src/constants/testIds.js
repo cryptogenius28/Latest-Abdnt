@@ -46,11 +46,14 @@ export const SHOP = {
   empty: 'shop-empty',
   emptyClearSearch: 'shop-empty-clear-search',
   emptyBrowseAll: 'shop-empty-browse-all',
+  emptyClearAll: 'shop-empty-clear-all',
+  emptyIllustration: 'shop-empty-illustration',
   results: 'shop-results-count',
   searchInput: 'shop-search-input',
   searchSubmit: 'shop-search-submit',
   searchClear: 'shop-search-clear',
   sortSelect: 'shop-sort-select',
+  sortPill: 'shop-sort-pill',
   filterToggle: 'shop-filter-toggle',
   appliedPills: 'shop-applied-pills',
   clearAll: 'shop-clear-all',
@@ -65,6 +68,11 @@ export const FILTER = {
   fulfillmentCheckbox: 'filter-fulfillment-checkbox',
   priceMin: 'filter-price-min',
   priceMax: 'filter-price-max',
+  priceRange: 'filter-price-range',
+  priceRangeLabel: 'filter-price-range-label',
+  priceRangeReset: 'filter-price-range-reset',
+  priceRangeThumbMin: 'filter-price-range-thumb-min',
+  priceRangeThumbMax: 'filter-price-range-thumb-max',
   onSale: 'filter-on-sale',
 };
 
@@ -98,6 +106,8 @@ export const QUICK_VIEW = {
 export const PDP = {
   page: 'pdp-page',
   breadcrumb: 'pdp-breadcrumb',
+  breadcrumbHome: 'pdp-breadcrumb-home',
+  breadcrumbCategory: 'pdp-breadcrumb-category',
   imageMain: 'pdp-image-main',
   thumb: 'pdp-thumb',
   title: 'pdp-title',
@@ -107,6 +117,12 @@ export const PDP = {
   variantSelect: 'pdp-variant-select',
   qtyInput: 'pdp-qty-input',
   addToCart: 'pdp-add-to-cart',
+  fulfillmentBanner: 'pdp-fulfillment-banner',
+  tabs: 'pdp-tabs',
+  tabTrigger: 'pdp-tab-trigger',
+  tabContent: 'pdp-tab-content',
+  relatedRail: 'pdp-related-rail',
+  relatedCard: 'pdp-related-card',
 };
 
 export const LOGIN = {
