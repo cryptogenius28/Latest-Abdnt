@@ -1,7 +1,7 @@
 """AI routes — Shopping Assistant chat, product description generator, review summary.
 
-Uses emergentintegrations + EMERGENT_LLM_KEY (universal key).
-Model: claude-sonnet-4-6 (Anthropic, recommended).
+Uses the Anthropic SDK directly with EMERGENT_LLM_KEY or ANTHROPIC_API_KEY.
+Model: claude-sonnet-4-6-20250514 (Anthropic).
 All endpoints fail soft — never raise 500 on LLM failure, return fallback text.
 """
 from __future__ import annotations
@@ -16,26 +16,27 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, Field
 
+import anthropic as _anthropic
+
 from auth_utils import get_current_user_payload
 
 logger = logging.getLogger("abundant.ai")
 router = APIRouter(prefix="/ai", tags=["ai"])
 
-MODEL_PROVIDER = "anthropic"
-MODEL_NAME = "claude-sonnet-4-6"
 
-# Lazy import so backend boots even if package missing in dev
-def _llm_chat(session_id: str, system_message: str):
-    from emergentintegrations.llm.chat import LlmChat  # noqa: WPS433
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+def _call_llm(system_message: str, messages: list) -> str:
+    """Call Anthropic Claude API directly."""
+    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        raise RuntimeError("EMERGENT_LLM_KEY not configured")
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=session_id,
-        system_message=system_message,
-    ).with_model(MODEL_PROVIDER, MODEL_NAME)
-    return chat
+        raise RuntimeError("No LLM API key configured (set EMERGENT_LLM_KEY or ANTHROPIC_API_KEY)")
+    client = _anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model="claude-sonnet-4-6-20250514",
+        max_tokens=1024,
+        system=system_message,
+        messages=messages,
+    )
+    return response.content[0].text
 
 
 # ----------------------------- Schemas -----------------------------
@@ -127,19 +128,13 @@ async def chat(req: ChatRequest, request: Request):
         f"CATALOG_CONTEXT (top matches for this query):\n{product_block}\n"
     )
 
-    session_id = f"chat-{uuid.uuid4().hex[:12]}"
     try:
-        from emergentintegrations.llm.chat import UserMessage  # noqa: WPS433
-        chat_obj = _llm_chat(session_id, system)
-        # Replay history into the chat object via send_message (non-streaming for simplicity)
-        for turn in req.history[-6:]:  # cap at last 6 turns
-            if turn.role == "user":
-                await chat_obj.send_message(UserMessage(text=turn.content))
-        reply = await chat_obj.send_message(UserMessage(text=req.message))
-        if isinstance(reply, str):
-            reply_text = reply
-        else:
-            reply_text = getattr(reply, "content", str(reply))
+        messages = [
+            {"role": turn.role, "content": turn.content}
+            for turn in req.history[-6:]  # cap at last 6 turns
+        ]
+        messages.append({"role": "user", "content": req.message})
+        reply_text = _call_llm(system, messages)
     except Exception as e:  # noqa: BLE001
         logger.warning("AI chat failed: %s", e)
         if products:
@@ -168,12 +163,8 @@ async def generate_description(req: DescribeRequest, request: Request):
     )
 
     system = "You write tight, persuasive product copy for e-commerce. No fluff."
-    session_id = f"describe-{uuid.uuid4().hex[:12]}"
     try:
-        from emergentintegrations.llm.chat import UserMessage  # noqa: WPS433
-        chat_obj = _llm_chat(session_id, system)
-        reply = await chat_obj.send_message(UserMessage(text=prompt))
-        text = reply if isinstance(reply, str) else getattr(reply, "content", str(reply))
+        text = _call_llm(system, [{"role": "user", "content": prompt}])
         text = (text or "").strip().strip('"')
         if not text:
             raise RuntimeError("empty reply")
@@ -227,12 +218,8 @@ async def review_summary(product_id: str, request: Request):
         f"Reviews:\n{joined}"
     )
     system = "You write neutral, balanced summaries of customer reviews. Exactly 2 sentences."
-    session_id = f"summary-{product_id}"
     try:
-        from emergentintegrations.llm.chat import UserMessage  # noqa: WPS433
-        chat_obj = _llm_chat(session_id, system)
-        reply = await chat_obj.send_message(UserMessage(text=prompt))
-        text = reply if isinstance(reply, str) else getattr(reply, "content", str(reply))
+        text = _call_llm(system, [{"role": "user", "content": prompt}])
         text = (text or "").strip().strip('"')
         if not text:
             return ReviewSummaryResponse(summary=None)
