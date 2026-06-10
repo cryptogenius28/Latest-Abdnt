@@ -126,8 +126,18 @@ const fromForm = (f) => ({
   featured: !!f.featured,
 });
 
+// Field component defined at module level — never remounts on re-render
+const Field = ({ label, hint, required, children, className = '' }) => (
+  <label className={`block ${className}`}>
+    <span className="text-xs font-semibold text-ink-700 uppercase tracking-wider">
+      {label} {required && <span className="text-brand">*</span>}
+    </span>
+    <div className="mt-1.5">{children}</div>
+    {hint && <span className="block mt-1 text-xs text-ink-400">{hint}</span>}
+  </label>
+);
+
 const ProductFormModal = ({ open, onClose, onSaved, editing }) => {
-  // Initialized lazily from props on mount. Parent uses `key` to remount on change.
   const [form, setForm] = useState(() => (editing ? toForm(editing) : emptyProduct));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -135,10 +145,11 @@ const ProductFormModal = ({ open, onClose, onSaved, editing }) => {
 
   if (!open) return null;
 
-  const set = (k) => (e) => {
+  // useCallback ensures a stable function reference — prevents inputs losing focus on every keystroke
+  const set = useCallback((k) => (e) => {
     const v = e.target?.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm((prev) => ({ ...prev, [k]: v }));
-  };
+  }, []);
 
   const generateDescription = async () => {
     if (!form.title?.trim()) {
@@ -296,7 +307,7 @@ const ProductFormModal = ({ open, onClose, onSaved, editing }) => {
             <input value={form.tags} onChange={set('tags')} className="form-input" placeholder="wireless, gaming" />
           </Field>
 
-          {/* ===== Fulfillment section (Phase 5B) ===== */}
+          {/* ===== Fulfillment section ===== */}
           <div className="md:col-span-2 mt-2 rounded-lg border border-ink-200 bg-ink-50/60 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold uppercase tracking-widest text-ink-700">Fulfillment</p>
@@ -450,16 +461,6 @@ const ProductFormModal = ({ open, onClose, onSaved, editing }) => {
   );
 };
 
-const Field = ({ label, hint, required, children, className = '' }) => (
-  <label className={`block ${className}`}>
-    <span className="text-xs font-semibold text-ink-700 uppercase tracking-wider">
-      {label} {required && <span className="text-brand">*</span>}
-    </span>
-    <div className="mt-1.5">{children}</div>
-    {hint && <span className="block mt-1 text-xs text-ink-400">{hint}</span>}
-  </label>
-);
-
 const DeleteConfirm = ({ open, product, onClose, onConfirm, busy }) => {
   if (!open) return null;
   return (
@@ -468,7 +469,7 @@ const DeleteConfirm = ({ open, product, onClose, onConfirm, busy }) => {
       <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl p-6">
         <h3 className="font-heading text-lg font-bold text-ink-900">Delete product?</h3>
         <p className="mt-2 text-sm text-ink-500">
-          “{product?.title}” will be permanently removed. This cannot be undone.
+          "{product?.title}" will be permanently removed. This cannot be undone.
         </p>
         <div className="mt-6 flex items-center justify-end gap-3">
           <button
@@ -504,7 +505,6 @@ const ProductsList = () => {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const location = useLocation();
 
-  // Open editor when navigated here with state.editProductId (e.g. from low-stock card)
   useEffect(() => {
     const editId = location.state?.editProductId;
     if (!editId) return;
@@ -860,7 +860,6 @@ const AdminOverviewBody = ({ stats }) => (
   </div>
 );
 
-// ---- Phase 5C — Low Stock card ----
 const LowStockCard = () => {
   const [data, setData] = useState({ count: 0, items: [], threshold_default: 10 });
   const [loading, setLoading] = useState(true);
@@ -972,7 +971,6 @@ const LowStockCard = () => {
   );
 };
 
-// ---- Restock alerts card (admin Overview) ----
 const RestockAlertsCard = () => {
   const [data, setData] = useState({ items: [], total_pending: 0 });
   const [loading, setLoading] = useState(true);
@@ -1087,7 +1085,6 @@ const RestockAlertsCard = () => {
   );
 };
 
-// ============================ Admin tabs: subscribers, messages, orders ============================
 const AdminTable = ({ title, columns, rows, empty, testid, onRowClick, footer }) => (
   <div data-testid={testid} className="bg-white border border-ink-200 rounded-xl overflow-hidden">
     <div className="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
@@ -1261,7 +1258,6 @@ const OrderStatusModal = ({ order, onClose, onSaved }) => {
           </button>
         </div>
 
-        {/* Phase 5D — Line items with fulfillment badges */}
         {(order.items?.length || 0) > 0 && (
           <div className="px-5 pt-5">
             <div className="flex items-center justify-between mb-2">
@@ -1427,7 +1423,6 @@ const AdminOrders = () => {
   );
 };
 
-// ============================ Bulk CSV Import ============================
 const AdminBulkImport = () => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -1609,7 +1604,6 @@ const AdminBulkImport = () => {
   );
 };
 
-// ---- Image bundle (.zip) upload ----
 const ImageBundleCard = () => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
